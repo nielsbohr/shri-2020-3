@@ -10,13 +10,13 @@ export interface LinterProblem<TKey> {
 export function makeLint<TProblemKey>(
     json: string, 
     validateProperty: (property: jsonToAst.AstProperty) => LinterProblem<TProblemKey>[],
-    validateObject: (property: jsonToAst.AstObject) => LinterProblem<TProblemKey>[]
+    validateObject: (obj: jsonToAst.AstObject) => LinterProblem<TProblemKey>[]
 ): LinterProblem<TProblemKey>[] {
 
     function walk(
         node: jsonToAst.AstJsonEntity, 
         cbProp: (property: jsonToAst.AstProperty) => void,
-        cbObj: (property: jsonToAst.AstObject) => void
+        cbObj: (obj: jsonToAst.AstObject) => void
     ) {
         switch (node.type) {
             case 'Array':
@@ -42,8 +42,8 @@ export function makeLint<TProblemKey>(
 
     if (ast) {
         walk(ast, 
-            (property: jsonToAst.AstProperty) => errors.concat(...validateProperty(property)), 
-            (obj: jsonToAst.AstObject) => errors.concat(...validateObject(obj)));
+            (property: jsonToAst.AstProperty) => errors.push(...validateProperty(property)), 
+            (obj: jsonToAst.AstObject) => errors.push(...validateObject(obj)));
     }
 
     return errors;

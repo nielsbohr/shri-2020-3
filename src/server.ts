@@ -17,13 +17,13 @@ import { ExampleConfiguration, Severity, RuleKeys } from './configuration';
 import { makeLint, LinterProblem } from './linter';
 
 let conn = createConnection(ProposedFeatures.all);
-let docs = new TextDocuments();
+let docs: TextDocuments = new TextDocuments();
 let conf: ExampleConfiguration | undefined = undefined;
 
 conn.onInitialize((params: InitializeParams) => {
     return {
         capabilities: {
-            textDocumentSync: 'always'
+            textDocumentSync: 1
         }
     };
 });
@@ -37,7 +37,7 @@ function GetSeverity(key: RuleKeys): DiagnosticSeverity | undefined {
 
     switch (severity) {
         case Severity.Error:
-            return DiagnosticSeverity.Information;
+            return DiagnosticSeverity.Error;
         case Severity.Warning:
             return DiagnosticSeverity.Warning;
         case Severity.Information:
@@ -63,7 +63,7 @@ function GetMessage(key: RuleKeys): string {
 
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     const source = basename(textDocument.uri);
-    const json = textDocument.uri;
+    const json = textDocument.getText();
 
     const validateObject = (
         obj: jsonToAst.AstObject
