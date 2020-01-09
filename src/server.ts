@@ -9,13 +9,14 @@ import {
     DidChangeConfigurationParams
 } from 'vscode-languageserver';
 
-import { basename } from 'path';
+import { basename, extname } from 'path';
 
 import * as jsonToAst from "json-to-ast";
 import "./linter/linter";
 
 import { ExampleConfiguration, Severity, RuleKeys } from './configuration';
-import { makeLint, LinterProblem } from './linter';
+import { makeLint, LinterProblem, LinterError } from './linter';
+import { stringify } from 'querystring';
 
 let conn = createConnection(ProposedFeatures.all);
 let docs: TextDocuments = new TextDocuments();
@@ -64,6 +65,7 @@ function GetMessage(key: RuleKeys): string {
 
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     const source = basename(textDocument.uri);
+    if (extname(source) !== '.json') return;
     const json = textDocument.getText();
 
     const validateObject = (
@@ -119,7 +121,31 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
         []
     );
 
-    // diagnostics.push(...global.lint(json))
+    diagnostics.push(...global.lint(json).reduce(
+    (
+        list: Diagnostic[],
+        problem: LinterError
+    ): Diagnostic[] => {
+        let diagnostic: Diagnostic = {
+            range: {
+                start: {
+                    line: problem.location.start.line - 1,
+                    character: problem.location.start.column - 1,
+                },
+                end: {
+                    line: problem.location.end.line - 1,
+                    character: problem.location.end.column - 1,
+                }
+            },
+            message: problem.error,
+            severity: DiagnosticSeverity.Error,
+            source
+        };
+
+        list.push(diagnostic);
+
+        return list;
+    }, []));
 
     if (diagnostics.length) {
         conn.sendDiagnostics({ uri: textDocument.uri, diagnostics });

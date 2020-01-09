@@ -1,6 +1,24 @@
 import * as jsonToAst from "json-to-ast";
 
+export interface lint {
+    (json: string): LinterError[];
+}
+
+declare global {
+    namespace NodeJS {
+        interface Global {
+            lint: lint
+        }
+    }
+}
+
 export type JsonAST = jsonToAst.AstJsonEntity | undefined;
+
+export interface LinterError {
+    error: string;
+    code: string;
+    location: jsonToAst.AstLocation;
+}
 
 export interface LinterProblem<TKey> {
     key: TKey;
