@@ -12,6 +12,7 @@ import {
 import { basename } from 'path';
 
 import * as jsonToAst from "json-to-ast";
+import "./linter/linter";
 
 import { ExampleConfiguration, Severity, RuleKeys } from './configuration';
 import { makeLint, LinterProblem } from './linter';
@@ -117,6 +118,8 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
         },
         []
     );
+
+    // diagnostics.push(...global.lint(json))
 
     if (diagnostics.length) {
         conn.sendDiagnostics({ uri: textDocument.uri, diagnostics });

@@ -5,8 +5,6 @@ declare namespace JsonToAst {
         offset: number;
     }
 
-
-
     export interface AstLocation {
         start: AstPosition;
         end: AstPosition;
