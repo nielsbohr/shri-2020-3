@@ -47,6 +47,103 @@
 					],
 					"default": "Warning",
 					"description": "The 'blockNameIsRequired' rule severity."
+				},
+				"example.severity.invalidButtonPosition": {
+					"type": "string",
+					"enum": [
+						"Error",
+						"Warning",
+						"Information",
+						"Hint",
+						"None"
+					],
+					"default": "Warning",
+					"description": "The 'invalidButtonPosition' rule severity."
+				},
+				"example.severity.invalidButtonSize": {
+					"type": "string",
+					"enum": [
+						"Error",
+						"Warning",
+						"Information",
+						"Hint",
+						"None"
+					],
+					"default": "Warning",
+					"description": "The 'invalidButtonSize' rule severity."
+				},
+				"example.severity.invalidPlaceholderSize": {
+					"type": "string",
+					"enum": [
+						"Error",
+						"Warning",
+						"Information",
+						"Hint",
+						"None"
+					],
+					"default": "Warning",
+					"description": "The 'invalidPlaceholderSize' rule severity."
+				},
+				"example.severity.textSizeShouldBeEqual": {
+					"type": "string",
+					"enum": [
+						"Error",
+						"Warning",
+						"Information",
+						"Hint",
+						"None"
+					],
+					"default": "Warning",
+					"description": "The 'textSizeShouldBeEqual' rule severity."
+				},
+				"example.severity.severalH1": {
+					"type": "string",
+					"enum": [
+						"Error",
+						"Warning",
+						"Information",
+						"Hint",
+						"None"
+					],
+					"default": "Warning",
+					"description": "The 'severalH1' rule severity."
+				},
+				
+				"example.severity.invalidH2Position": {
+					"type": "string",
+					"enum": [
+						"Error",
+						"Warning",
+						"Information",
+						"Hint",
+						"None"
+					],
+					"default": "Warning",
+					"description": "The 'invalidH2Position' rule severity."
+				},
+				"example.severity.invalidH3Position": {
+					"type": "string",
+					"enum": [
+						"Error",
+						"Warning",
+						"Information",
+						"Hint",
+						"None"
+					],
+					"default": "Warning",
+					"description": "The 'invalidH3Position' rule severity."
+				},
+				"example.severity.tooMuchMarketingBlocks": {
+					"type": "string",
+					"enum": [
+						"Error",
+						"Warning",
+						"Information",
+						"Hint",
+						"None"
+					],
+					"default": "Warning",
+					"description": "The 'tooMuchMarketingBlocks' rule severity."
 				}
 			}
 		},

@@ -16,7 +16,6 @@ import "./linter/linter";
 
 import { ExampleConfiguration, Severity, RuleKeys } from './configuration';
 import { makeLint, LinterProblem, LinterError } from './linter';
-import { stringify } from 'querystring';
 
 let conn = createConnection(ProposedFeatures.all);
 let docs: TextDocuments = new TextDocuments();
@@ -138,7 +137,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
                 }
             },
             message: problem.error,
-            severity: DiagnosticSeverity.Error,
+            severity: GetSeverity(problem.code),
             source
         };
 

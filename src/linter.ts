@@ -1,4 +1,5 @@
 import * as jsonToAst from "json-to-ast";
+import { RuleKeys } from "./configuration";
 
 export interface lint {
     (json: string): LinterError[];
@@ -16,7 +17,7 @@ export type JsonAST = jsonToAst.AstJsonEntity | undefined;
 
 export interface LinterError {
     error: string;
-    code: string;
+    code: RuleKeys;
     location: jsonToAst.AstLocation;
 }
 
