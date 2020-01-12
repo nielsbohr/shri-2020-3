@@ -33,20 +33,21 @@ function GetSeverity(key: RuleKeys | undefined): DiagnosticSeverity | undefined 
         return undefined;
     }
 
-    const severity: Severity = conf.severity[key];
+    return DiagnosticSeverity.Error;
+    // const severity: Severity = conf.severity[key];
 
-    switch (severity) {
-        case Severity.Error:
-            return DiagnosticSeverity.Error;
-        case Severity.Warning:
-            return DiagnosticSeverity.Warning;
-        case Severity.Information:
-            return DiagnosticSeverity.Information;
-        case Severity.Hint:
-            return DiagnosticSeverity.Hint;
-        default:
-            return DiagnosticSeverity.Error;
-    }
+    // switch (severity) {
+    //     case Severity.Error:
+    //         return DiagnosticSeverity.Error;
+    //     case Severity.Warning:
+    //         return DiagnosticSeverity.Warning;
+    //     case Severity.Information:
+    //         return DiagnosticSeverity.Information;
+    //     case Severity.Hint:
+    //         return DiagnosticSeverity.Hint;
+    //     default:
+    //         return DiagnosticSeverity.Error;
+    // }
 }
 
 function GetMessage(key: RuleKeys | undefined): string {
