@@ -48,7 +48,7 @@
 					"default": "Warning",
 					"description": "The 'blockNameIsRequired' rule severity."
 				},
-				"example.severity.invalidButtonPosition": {
+				"example.severity.WARNING.INVALID_BUTTON_POSITION": {
 					"type": "string",
 					"enum": [
 						"Error",
@@ -60,7 +60,7 @@
 					"default": "Warning",
 					"description": "The 'invalidButtonPosition' rule severity."
 				},
-				"example.severity.invalidButtonSize": {
+				"example.severity.WARNING.INVALID_BUTTON_SIZE": {
 					"type": "string",
 					"enum": [
 						"Error",
@@ -72,7 +72,7 @@
 					"default": "Warning",
 					"description": "The 'invalidButtonSize' rule severity."
 				},
-				"example.severity.invalidPlaceholderSize": {
+				"example.severity.WARNING.INVALID_PLACEHOLDER_SIZE": {
 					"type": "string",
 					"enum": [
 						"Error",
@@ -84,7 +84,7 @@
 					"default": "Warning",
 					"description": "The 'invalidPlaceholderSize' rule severity."
 				},
-				"example.severity.textSizeShouldBeEqual": {
+				"example.severity.WARNING.TEXT_SIZE_SHOULD_BE_EQUAL": {
 					"type": "string",
 					"enum": [
 						"Error",
@@ -96,7 +96,7 @@
 					"default": "Warning",
 					"description": "The 'textSizeShouldBeEqual' rule severity."
 				},
-				"example.severity.severalH1": {
+				"example.severity.TEXT_SEVERAL_H1": {
 					"type": "string",
 					"enum": [
 						"Error",
@@ -109,7 +109,7 @@
 					"description": "The 'severalH1' rule severity."
 				},
 				
-				"example.severity.invalidH2Position": {
+				"example.severity.TEXT.INVALID_H2_POSITION": {
 					"type": "string",
 					"enum": [
 						"Error",
@@ -121,7 +121,7 @@
 					"default": "Warning",
 					"description": "The 'invalidH2Position' rule severity."
 				},
-				"example.severity.invalidH3Position": {
+				"example.severity.TEXT.INVALID_H3_POSITION": {
 					"type": "string",
 					"enum": [
 						"Error",
@@ -133,7 +133,7 @@
 					"default": "Warning",
 					"description": "The 'invalidH3Position' rule severity."
 				},
-				"example.severity.tooMuchMarketingBlocks": {
+				"example.severity.GRID.TOO_MUCH_MARKETING_BLOCKS": {
 					"type": "string",
 					"enum": [
 						"Error",

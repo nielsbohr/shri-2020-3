@@ -1,30 +1,17 @@
 import * as jsonToAst from "json-to-ast";
-import { RuleKeys } from "./configuration";
-
-export interface lint {
-    (json: string): LinterError[];
-}
-
-declare global {
-    namespace NodeJS {
-        interface Global {
-            lint: lint
-        }
-    }
-}
+import "./linter/linter";
 
 export type JsonAST = jsonToAst.AstJsonEntity | undefined;
 
-export interface LinterError {
-    error: string;
-    code: RuleKeys;
-    location: jsonToAst.AstLocation;
+export interface LinterProblem<TKey> {
+    key?: TKey;
+    loc?: jsonToAst.AstLocation;
+    code?: TKey;
+    error?: string;
+    location?: jsonToAst.AstLocation;
 }
 
-export interface LinterProblem<TKey> {
-    key: TKey;
-    loc: jsonToAst.AstLocation;
-}
+declare function lint<TKey>(json: string): LinterProblem<TKey>[];
 
 export function makeLint<TProblemKey>(
     json: string, 
@@ -64,6 +51,8 @@ export function makeLint<TProblemKey>(
             (property: jsonToAst.AstProperty) => errors.push(...validateProperty(property)), 
             (obj: jsonToAst.AstObject) => errors.push(...validateObject(obj)));
     }
+
+    errors.push(...lint<TProblemKey>(json));
 
     return errors;
 }

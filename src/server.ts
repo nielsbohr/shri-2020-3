@@ -12,10 +12,9 @@ import {
 import { basename, extname } from 'path';
 
 import * as jsonToAst from "json-to-ast";
-import "./linter/linter";
 
 import { ExampleConfiguration, Severity, RuleKeys } from './configuration';
-import { makeLint, LinterProblem, LinterError } from './linter';
+import { makeLint, LinterProblem } from './linter';
 
 let conn = createConnection(ProposedFeatures.all);
 let docs: TextDocuments = new TextDocuments();
@@ -29,8 +28,8 @@ conn.onInitialize((params: InitializeParams) => {
     };
 });
 
-function GetSeverity(key: RuleKeys): DiagnosticSeverity | undefined {
-    if (!conf || !conf.severity) {
+function GetSeverity(key: RuleKeys | undefined): DiagnosticSeverity | undefined {
+    if (!conf || !conf.severity || !key) {
         return undefined;
     }
 
@@ -46,11 +45,11 @@ function GetSeverity(key: RuleKeys): DiagnosticSeverity | undefined {
         case Severity.Hint:
             return DiagnosticSeverity.Hint;
         default:
-            return undefined;
+            return DiagnosticSeverity.Error;
     }
 }
 
-function GetMessage(key: RuleKeys): string {
+function GetMessage(key: RuleKeys | undefined): string {
     if (key === RuleKeys.BlockNameIsRequired) {
         return 'Field named \'block\' is required!';
     }
@@ -60,6 +59,33 @@ function GetMessage(key: RuleKeys): string {
     }
 
     return `Unknown problem type '${key}'`;
+}
+
+function GetRange(location: jsonToAst.AstLocation | undefined, textDocument: TextDocument) {
+    if (!location) {
+        return undefined;
+    }
+
+    const { start } = location;
+    const { end } = location;
+
+    if (start.line && start.column && end.line && end.column) {
+        return {
+            start: {
+                line: location.start.line - 1,
+                character: location.start.column - 1,
+            },
+            end: {
+                line: location.end.line - 1,
+                character: location.end.column - 1,
+            }
+        }
+    } else {
+        return {
+            start: textDocument.positionAt(location.start.offset),
+            end: textDocument.positionAt(location.end.offset)
+        }
+    }
 }
 
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
@@ -95,56 +121,28 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
             list: Diagnostic[],
             problem: LinterProblem<RuleKeys>
         ): Diagnostic[] => {
-            const severity = GetSeverity(problem.key);
+            const severity = GetSeverity(problem.key || problem.code);
+            console.log(severity);
 
             if (severity) {
-                const message = GetMessage(problem.key);
+                const message = problem.error || GetMessage(problem.key);
+                const range = GetRange(problem.location || problem.loc, textDocument);
+                if (range) {
+                    let diagnostic: Diagnostic = {
+                        range,
+                        severity,
+                        message,
+                        source
+                    };
 
-                let diagnostic: Diagnostic = {
-                    range: {
-                        start: textDocument.positionAt(
-                            problem.loc.start.offset
-                        ),
-                        end: textDocument.positionAt(problem.loc.end.offset)
-                    },
-                    severity,
-                    message,
-                    source
-                };
-
-                list.push(diagnostic);
+                    list.push(diagnostic);
+                }
             }
 
             return list;
         },
         []
     );
-
-    diagnostics.push(...global.lint(json).reduce(
-    (
-        list: Diagnostic[],
-        problem: LinterError
-    ): Diagnostic[] => {
-        let diagnostic: Diagnostic = {
-            range: {
-                start: {
-                    line: problem.location.start.line - 1,
-                    character: problem.location.start.column - 1,
-                },
-                end: {
-                    line: problem.location.end.line - 1,
-                    character: problem.location.end.column - 1,
-                }
-            },
-            message: problem.error,
-            severity: GetSeverity(problem.code),
-            source
-        };
-
-        list.push(diagnostic);
-
-        return list;
-    }, []));
 
     if (diagnostics.length) {
         conn.sendDiagnostics({ uri: textDocument.uri, diagnostics });
