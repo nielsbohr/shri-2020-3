@@ -13,7 +13,7 @@ import { basename, extname } from 'path';
 
 import * as jsonToAst from "json-to-ast";
 
-import { ExampleConfiguration, Severity, RuleKeys } from './configuration';
+import { ExampleConfiguration, Severity } from './configuration';
 import { makeLint, LinterProblem } from './linter';
 
 let conn = createConnection(ProposedFeatures.all);
@@ -28,64 +28,31 @@ conn.onInitialize((params: InitializeParams) => {
     };
 });
 
-function GetSeverity(key: RuleKeys | undefined): DiagnosticSeverity | undefined {
+function GetSeverity(key: string): DiagnosticSeverity | undefined {
     if (!conf || !conf.severity || !key) {
         return undefined;
     }
 
-    return DiagnosticSeverity.Error;
-    // const severity: Severity = conf.severity[key];
+    let severity: Severity | undefined = undefined;
 
-    // switch (severity) {
-    //     case Severity.Error:
-    //         return DiagnosticSeverity.Error;
-    //     case Severity.Warning:
-    //         return DiagnosticSeverity.Warning;
-    //     case Severity.Information:
-    //         return DiagnosticSeverity.Information;
-    //     case Severity.Hint:
-    //         return DiagnosticSeverity.Hint;
-    //     default:
-    //         return DiagnosticSeverity.Error;
-    // }
-}
-
-function GetMessage(key: RuleKeys | undefined): string {
-    if (key === RuleKeys.BlockNameIsRequired) {
-        return 'Field named \'block\' is required!';
-    }
-
-    if (key === RuleKeys.UppercaseNamesIsForbidden) {
-        return 'Uppercase properties are forbidden!';
-    }
-
-    return `Unknown problem type '${key}'`;
-}
-
-function GetRange(location: jsonToAst.AstLocation | undefined, textDocument: TextDocument) {
-    if (!location) {
-        return undefined;
-    }
-
-    const { start } = location;
-    const { end } = location;
-
-    if (start.line && start.column && end.line && end.column) {
-        return {
-            start: {
-                line: location.start.line - 1,
-                character: location.start.column - 1,
-            },
-            end: {
-                line: location.end.line - 1,
-                character: location.end.column - 1,
-            }
-        }
+    const [type, code] = key.split('.');
+    if (code) {
+        severity = conf.severity[type][code];
     } else {
-        return {
-            start: textDocument.positionAt(location.start.offset),
-            end: textDocument.positionAt(location.end.offset)
-        }
+        severity = conf.severity[type];
+    }
+    
+    switch (severity) {
+        case Severity.Error:
+            return DiagnosticSeverity.Error;
+        case Severity.Warning:
+            return DiagnosticSeverity.Warning;
+        case Severity.Information:
+            return DiagnosticSeverity.Information;
+        case Severity.Hint:
+            return DiagnosticSeverity.Hint;
+        default:
+            return undefined;
     }
 }
 
@@ -96,19 +63,26 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 
     const validateObject = (
         obj: jsonToAst.AstObject
-    ): LinterProblem<RuleKeys>[] =>
+    ): LinterProblem[] =>
         obj.children.some(p => p.key.value === 'block')
             ? []
-            : [{ key: RuleKeys.BlockNameIsRequired, loc: obj.loc }];
+            : [
+                { 
+                    code: 'blockNameIsRequired',
+                    error:  'Field named \'block\' is required!',
+                    location: obj.loc 
+                }
+            ];
 
     const validateProperty = (
         property: jsonToAst.AstProperty
-    ): LinterProblem<RuleKeys>[] =>
+    ): LinterProblem[] =>
         /^[A-Z]+$/.test(property.key.value)
             ? [
                   {
-                      key: RuleKeys.UppercaseNamesIsForbidden,
-                      loc: property.key.loc
+                      code: 'UppercaseNamesIsForbidden',
+                      error: 'Uppercase properties are forbidden!',
+                      location: property.key.loc
                   }
               ]
             : [];
@@ -120,24 +94,28 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     ).reduce(
         (
             list: Diagnostic[],
-            problem: LinterProblem<RuleKeys>
+            problem: LinterProblem
         ): Diagnostic[] => {
-            const severity = GetSeverity(problem.key || problem.code);
-            console.log(severity);
+            const severity = GetSeverity(problem.code);
 
             if (severity) {
-                const message = problem.error || GetMessage(problem.key);
-                const range = GetRange(problem.location || problem.loc, textDocument);
-                if (range) {
-                    let diagnostic: Diagnostic = {
-                        range,
-                        severity,
-                        message,
-                        source
-                    };
+                let diagnostic: Diagnostic = {
+                    range: {
+                        start: {
+                            line: problem.location.start.line - 1,
+                            character: problem.location.start.column - 1,
+                        },
+                        end: {
+                            line: problem.location.end.line - 1,
+                            character: problem.location.end.column - 1,
+                        }
+                    },
+                    message: problem.error,
+                    severity,
+                    source
+                };
 
-                    list.push(diagnostic);
-                }
+                list.push(diagnostic);
             }
 
             return list;
@@ -145,9 +123,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
         []
     );
 
-    if (diagnostics.length) {
-        conn.sendDiagnostics({ uri: textDocument.uri, diagnostics });
-    }
+    conn.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
 
 async function validateAll() {

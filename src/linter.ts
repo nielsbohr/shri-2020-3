@@ -1,23 +1,21 @@
 import * as jsonToAst from "json-to-ast";
-import "./linter/linter";
+import "./js/linter";
 
 export type JsonAST = jsonToAst.AstJsonEntity | undefined;
 
-export interface LinterProblem<TKey> {
-    key?: TKey;
-    loc?: jsonToAst.AstLocation;
-    code?: TKey;
-    error?: string;
-    location?: jsonToAst.AstLocation;
+export interface LinterProblem {
+    code: string;
+    error: string;
+    location: jsonToAst.AstLocation;
 }
 
-declare function lint<TKey>(json: string): LinterProblem<TKey>[];
+declare function lint(json: string): LinterProblem[];
 
-export function makeLint<TProblemKey>(
+export function makeLint(
     json: string, 
-    validateProperty: (property: jsonToAst.AstProperty) => LinterProblem<TProblemKey>[],
-    validateObject: (obj: jsonToAst.AstObject) => LinterProblem<TProblemKey>[]
-): LinterProblem<TProblemKey>[] {
+    validateProperty: (property: jsonToAst.AstProperty) => LinterProblem[],
+    validateObject: (obj: jsonToAst.AstObject) => LinterProblem[]
+): LinterProblem[] {
 
     function walk(
         node: jsonToAst.AstJsonEntity, 
@@ -43,7 +41,7 @@ export function makeLint<TProblemKey>(
 
     function parseJson(json: string):JsonAST  {return jsonToAst(json); }
 
-    const errors: LinterProblem<TProblemKey>[] = [];
+    const errors: LinterProblem[] = [];
     const ast: JsonAST = parseJson(json);
 
     if (ast) {
@@ -52,7 +50,7 @@ export function makeLint<TProblemKey>(
             (obj: jsonToAst.AstObject) => errors.push(...validateObject(obj)));
     }
 
-    errors.push(...lint<TProblemKey>(json));
+    errors.push(...lint(json));
 
     return errors;
 }

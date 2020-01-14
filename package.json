@@ -108,7 +108,6 @@
 					"default": "Warning",
 					"description": "The 'severalH1' rule severity."
 				},
-				
 				"example.severity.TEXT.INVALID_H2_POSITION": {
 					"type": "string",
 					"enum": [
