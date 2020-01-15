@@ -13,12 +13,14 @@ import { basename, extname } from 'path';
 
 import * as jsonToAst from "json-to-ast";
 
-import { ExampleConfiguration, Severity } from './configuration';
-import { makeLint, LinterProblem } from './linter';
+import { ExampleConfiguration, Severity, RuleKeys, RuleTypes } from './configuration';
+import { makeLint, LinterStub, LinterByBlock } from './linter';
+
+declare function lint(json: string): LinterByBlock[];
 
 let conn = createConnection(ProposedFeatures.all);
 let docs: TextDocuments = new TextDocuments();
-let conf: ExampleConfiguration | undefined = undefined;
+let conf: ExampleConfiguration | undefined | any = undefined;
 
 conn.onInitialize((params: InitializeParams) => {
     return {
@@ -28,20 +30,13 @@ conn.onInitialize((params: InitializeParams) => {
     };
 });
 
-function GetSeverity(key: string): DiagnosticSeverity | undefined {
-    if (!conf || !conf.severity || !key) {
+function GetSeverity(type: RuleTypes, key: RuleKeys): DiagnosticSeverity | undefined {
+    if (!conf || !conf.severity) {
         return undefined;
     }
 
-    let severity: Severity | undefined = undefined;
+    const severity: Severity = conf.severity[type][key];
 
-    const [type, code] = key.split('.');
-    if (code) {
-        severity = conf.severity[type][code];
-    } else {
-        severity = conf.severity[type];
-    }
-    
     switch (severity) {
         case Severity.Error:
             return DiagnosticSeverity.Error;
@@ -56,6 +51,35 @@ function GetSeverity(key: string): DiagnosticSeverity | undefined {
     }
 }
 
+function getType(code: string): RuleTypes | undefined {
+    const ruleType = code.split('.')[0].toLowerCase();
+
+    return ruleType as RuleTypes
+}
+
+function getKey(code: string): RuleKeys | undefined {
+    const ruleKey = code.split('.')[1]
+        .toLowerCase()
+        .replace(/([_][a-z])/ig, (key) => {
+          return key.toUpperCase()
+            .replace('_', '');
+        });
+
+    return ruleKey as RuleKeys
+}
+
+function GetMessage(key: RuleKeys): string {
+    if (key === RuleKeys.BlockNameIsRequired) {
+        return 'Field named \'block\' is required!';
+    }
+
+    if (key === RuleKeys.UppercaseNamesIsForbidden) {
+        return 'Uppercase properties are forbidden!';
+    }
+
+    return `Unknown problem type '${key}'`;
+}
+
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     const source = basename(textDocument.uri);
     if (extname(source) !== '.json') return;
@@ -63,26 +87,26 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 
     const validateObject = (
         obj: jsonToAst.AstObject
-    ): LinterProblem[] =>
+    ): LinterStub<RuleTypes, RuleKeys>[] =>
         obj.children.some(p => p.key.value === 'block')
             ? []
             : [
                 { 
-                    code: 'blockNameIsRequired',
-                    error:  'Field named \'block\' is required!',
-                    location: obj.loc 
+                    key: RuleKeys.BlockNameIsRequired,
+                    type: RuleTypes.Stub,
+                    loc: obj.loc 
                 }
             ];
 
     const validateProperty = (
         property: jsonToAst.AstProperty
-    ): LinterProblem[] =>
+    ): LinterStub<RuleTypes, RuleKeys>[] =>
         /^[A-Z]+$/.test(property.key.value)
             ? [
                   {
-                      code: 'UppercaseNamesIsForbidden',
-                      error: 'Uppercase properties are forbidden!',
-                      location: property.key.loc
+                      key: RuleKeys.UppercaseNamesIsForbidden,
+                      type: RuleTypes.Stub,
+                      loc: property.key.loc
                   }
               ]
             : [];
@@ -94,24 +118,26 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     ).reduce(
         (
             list: Diagnostic[],
-            problem: LinterProblem
+            problem: LinterStub<RuleTypes, RuleKeys>
         ): Diagnostic[] => {
-            const severity = GetSeverity(problem.code);
+            const severity = GetSeverity(problem.type, problem.key);
 
             if (severity) {
+                const message = GetMessage(problem.key);
+
                 let diagnostic: Diagnostic = {
                     range: {
-                        start: {
-                            line: problem.location.start.line - 1,
-                            character: problem.location.start.column - 1,
+                            start: {
+                                line: problem.loc.start.line - 1,
+                                character: problem.loc.start.column - 1,
+                            },
+                            end: {
+                                line: problem.loc.end.line - 1,
+                                character: problem.loc.end.column - 1,
+                            }
                         },
-                        end: {
-                            line: problem.location.end.line - 1,
-                            character: problem.location.end.column - 1,
-                        }
-                    },
-                    message: problem.error,
                     severity,
+                    message,
                     source
                 };
 
@@ -121,6 +147,42 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
             return list;
         },
         []
+    );
+
+    diagnostics.push(
+        ...lint(json).reduce(
+            (
+                list: Diagnostic[],
+                problem: LinterByBlock
+            ): Diagnostic[] => {
+                const type = getType(problem.code);
+                const key = getKey(problem.code);
+                if (type && key) {
+                    const severity = GetSeverity(type, key);
+
+                    const diagnostic: Diagnostic = {
+                        range: {
+                            start: {
+                                line: problem.location.start.line - 1,
+                                character: problem.location.start.column - 1,
+                            },
+                            end: {
+                                line: problem.location.end.line - 1,
+                                character: problem.location.end.column - 1,
+                            }
+                        },
+                        severity,
+                        message: problem.error,
+                        source
+                    };
+
+                    list.push(diagnostic);
+                }
+
+                return list;
+            },
+            []
+        )
     );
 
     conn.sendDiagnostics({ uri: textDocument.uri, diagnostics });

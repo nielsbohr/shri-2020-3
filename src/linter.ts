@@ -3,19 +3,32 @@ import "./js/linter";
 
 export type JsonAST = jsonToAst.AstJsonEntity | undefined;
 
-export interface LinterProblem {
-    code: string;
-    error: string;
-    location: jsonToAst.AstLocation;
+export interface LinterStub<TType, TKey> {
+    key: TKey;
+    type: TType;
+    loc: jsonToAst.AstLocation;
 }
 
-declare function lint(json: string): LinterProblem[];
+export interface LinterByBlock {
+    code: string;
+    error: string;
+    location: {
+        start: {
+            column: number;
+            line: number;
+        },
+        end: {
+            column: number;
+            line: number;
+        }
+    }
+}
 
-export function makeLint(
+export function makeLint<TProblemType, TProblemKey>(
     json: string, 
-    validateProperty: (property: jsonToAst.AstProperty) => LinterProblem[],
-    validateObject: (obj: jsonToAst.AstObject) => LinterProblem[]
-): LinterProblem[] {
+    validateProperty: (property: jsonToAst.AstProperty) => LinterStub<TProblemType, TProblemKey>[],
+    validateObject: (obj: jsonToAst.AstObject) => LinterStub<TProblemType, TProblemKey>[]
+): LinterStub<TProblemType, TProblemKey>[] {
 
     function walk(
         node: jsonToAst.AstJsonEntity, 
@@ -41,16 +54,14 @@ export function makeLint(
 
     function parseJson(json: string):JsonAST  {return jsonToAst(json); }
 
-    const errors: LinterProblem[] = [];
+    const errors: LinterStub<TProblemType, TProblemKey>[] = [];
     const ast: JsonAST = parseJson(json);
 
     if (ast) {
-        walk(ast, 
+        walk(ast,
             (property: jsonToAst.AstProperty) => errors.push(...validateProperty(property)), 
             (obj: jsonToAst.AstObject) => errors.push(...validateObject(obj)));
     }
-
-    errors.push(...lint(json));
 
     return errors;
 }
