@@ -68,6 +68,7 @@ export function makeLint<TProblemKey>(
                 (obj: jsonToAst.AstObject) => errors.push(...validateObject(obj)));
         }
     
+        // добавляем ошибки с подключенного линтера
         errors.push(...lint<TProblemKey>(json));
     } catch(e) {
         //

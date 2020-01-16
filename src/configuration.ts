@@ -19,6 +19,14 @@ export enum RuleTypes {
     Grid = 'grid',
 }
 
+export enum Severity {
+    Error = "Error", 
+    Warning = "Warning", 
+    Information = "Information", 
+    Hint = "Hint", 
+    None = "None"
+}
+
 export interface SeverityConfiguration {
     [RuleKeys.BlockNameIsRequired]: Severity;
     [RuleKeys.UppercaseNamesIsForbidden]: Severity;
@@ -42,14 +50,6 @@ export interface Text {
 
 export interface Grid {
     [RuleKeys.TooMuchMarketingBlocks]: Severity;
-}
-
-export enum Severity {
-    Error = "Error", 
-    Warning = "Warning", 
-    Information = "Information", 
-    Hint = "Hint", 
-    None = "None"
 }
 
 export interface ExampleConfiguration {
