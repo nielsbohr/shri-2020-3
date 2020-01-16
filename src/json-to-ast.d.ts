@@ -40,6 +40,7 @@ declare namespace JsonToAst {
         type: 'Identifier';
         value: string;
         raw: string;
+        
         // Добавлено поле локации
         loc: AstLocation;
     }

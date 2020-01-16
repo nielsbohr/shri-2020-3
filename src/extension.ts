@@ -52,6 +52,7 @@ const getPreviewKey = (doc: vscode.TextDocument): string => doc.uri.path;
 
 const getMediaPath = (context: vscode.ExtensionContext) => vscode.Uri
     .file(context.extensionPath)
+    
      // при такой схеме подтягиваются ассеты, согласно документации
     .with({ scheme: "vscode-resource"})
     .toString() + '/';
@@ -90,6 +91,7 @@ const updateContent = (doc: vscode.TextDocument, context: vscode.ExtensionContex
             const html = template.apply(data);
 
             panel.webview.html = previewHtml 
+
             // не '+', а '*'; '+' означает, что хотя бы один пробельный символ будет, а это не так
                 .replace(/{{\s*(\w+)\s*}}/g, (str, key) => {
                     switch (key) {

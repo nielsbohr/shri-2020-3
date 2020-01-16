@@ -29,16 +29,16 @@ conn.onInitialize((params: InitializeParams) => {
 });
 
 // Добавлен параметр типа ошибки (Warning, Text, Grid)
-function GetSeverity(code: string | RuleKeys): DiagnosticSeverity | undefined {
+function GetSeverity(code: string | { type: RuleTypes, key: RuleKeys}): DiagnosticSeverity | undefined {
     if (!conf || !conf.severity) {
         return undefined;
     }
     let severity: Severity | undefined;
     if (typeof code === 'string') {
-        const {type, key} = getKey(code);
-        severity = conf.severity[type][key];
-    } else {
         severity = conf.severity[code];
+    } else {
+        const {type, key} = code;
+        severity = conf.severity[type][key];
     }
 
     switch (severity) {
@@ -57,21 +57,22 @@ function GetSeverity(code: string | RuleKeys): DiagnosticSeverity | undefined {
 }
 
 // Функция хелпер для парсинга кода ошибки и сравнение с настройкой в плагине
-
-function getKey(code: string): { type: RuleTypes, key: RuleKeys} {
-    const [type, key] = code.split('.');
-    return {
-        type: type.toLowerCase() as RuleTypes,
-        key: key.toLowerCase()
-            .replace(/([_][a-z])/ig, (key) => {
-            return key.toUpperCase()
-                .replace('_', '');
-        }) as RuleKeys
-    };
+function getKey(code: string | undefined): { type: RuleTypes, key: RuleKeys} | undefined {
+    if (typeof code === 'string') {
+        const [type, key] = code.split('.');
+        return {
+            type: type.toLowerCase() as RuleTypes,
+            key: key.toLowerCase()
+                .replace(/([_][a-z])/ig, (key) => {
+                return key.toUpperCase()
+                    .replace('_', '');
+            }) as RuleKeys
+        };
+    }
 }
 
 // Лишняя логика, кажется, сообщения можно привязывать сразу к ошибке
-function GetMessage(key: RuleKeys): string {
+function GetMessage(key: RuleKeys | undefined): string {
     if (key === RuleKeys.BlockNameIsRequired) {
         return 'Field named \'block\' is required!';
     }
@@ -86,6 +87,7 @@ function GetMessage(key: RuleKeys): string {
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     const source = basename(textDocument.uri);
     if (extname(source) !== '.json') { return; }
+
     // textDocument.uri просто возвращает ссылку на документ, а необходим контент документа
     const json = textDocument.getText();
 
@@ -97,7 +99,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
             : [
                 { 
                     key: RuleKeys.BlockNameIsRequired,
-                    location: obj.loc 
+                    loc: obj.loc 
                 }
             ];
 
@@ -108,7 +110,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
             ? [
                   {
                       key: RuleKeys.UppercaseNamesIsForbidden,
-                      location: property.key.loc
+                      loc: property.key.loc
                   }
               ]
             : [];
@@ -122,28 +124,33 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
             list: Diagnostic[],
             problem: LinterProblem
         ): Diagnostic[] => {
-            const severity = GetSeverity(problem.code || problem.key);
-
-            if (severity) {
+            // Изменил мэппинг ошибок под два разных типа
+            const code = problem.key || getKey(problem.code);
+            if (code) {
+                const severity = GetSeverity(code);
                 const message = problem.error || GetMessage(problem.key);
-
-                let diagnostic: Diagnostic = {
-                    range: {
-                        start: {
-                            line: problem.location.start.line - 1,
-                            character: problem.location.start.column - 1,
+                const location = problem.loc ? problem.loc : problem.location;
+                if (severity && message && location) {
+                    let diagnostic: Diagnostic = {
+                        
+                        // Изменил на вариант, который подходит под оба линтера
+                        range: {
+                            start: {
+                                line: location.start.line - 1,
+                                character: location.start.column - 1,
+                            },
+                            end: {
+                                line: location.end.line - 1,
+                                character: location.end.column - 1,
+                            }
                         },
-                        end: {
-                            line: problem.location.end.line - 1,
-                            character: problem.location.end.column - 1,
-                        }
-                    },
-                    severity,
-                    message,
-                    source
-                };
+                        severity,
+                        message,
+                        source
+                    };
 
-                list.push(diagnostic);
+                    list.push(diagnostic);
+                }
             }
 
             return list;

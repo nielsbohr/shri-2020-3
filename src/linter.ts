@@ -4,11 +4,12 @@ import { RuleKeys } from "./configuration";
 
 export type JsonAST = jsonToAst.AstJsonEntity | undefined;
 
+// Изменяем интерфейс ошибки. Подробнее в README.
 export interface LinterProblem {
-    key: RuleKeys;
+    key?: RuleKeys;
     error?: string;
     code?: string;
-    location: {
+    location?: {
         start: {
             column: number;
             line: number;
@@ -18,6 +19,7 @@ export interface LinterProblem {
             line: number;
         }
     };
+    loc?: jsonToAst.AstLocation;
 }
 
 // Объявляем глобально функцию линтера
@@ -58,6 +60,7 @@ export function makeLint(
 
     if (ast) {
         walk(ast,
+            
             // .concat не изменяет массив, а возвращает новый массив, состоящий из массива, на котором он был вызван
             // правильно здесь использовать push с деструктуризацей массива
             (property: jsonToAst.AstProperty) => errors.push(...validateProperty(property)), 
