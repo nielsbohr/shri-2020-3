@@ -3,6 +3,8 @@ import { join, resolve, basename } from "path";
 import { bemhtml } from "bem-xjst";
 
 import * as vscode from 'vscode';
+
+// удален DocumentColorRequest. Здесь он не нужен
 import {
     LanguageClient,
     LanguageClientOptions,
@@ -50,6 +52,7 @@ const getPreviewKey = (doc: vscode.TextDocument): string => doc.uri.path;
 
 const getMediaPath = (context: vscode.ExtensionContext) => vscode.Uri
     .file(context.extensionPath)
+     // при такой схеме подтягиваются ассеты, согласно документации
     .with({ scheme: "vscode-resource"})
     .toString() + '/';
 
@@ -86,8 +89,8 @@ const updateContent = (doc: vscode.TextDocument, context: vscode.ExtensionContex
             const data = JSON.parse(json);
             const html = template.apply(data);
 
-
             panel.webview.html = previewHtml 
+            // не '+', а '*'; '+' означает, что хотя бы один пробельный символ будет, а это не так
                 .replace(/{{\s*(\w+)\s*}}/g, (str, key) => {
                     switch (key) {
                         case 'content':

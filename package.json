@@ -24,7 +24,7 @@
 					"default": false,
 					"description": "Enable/disable example linter."
 				},
-				"example.severity.stub.uppercaseNamesIsForbidden": {
+				"example.severity.uppercaseNamesIsForbidden": {
 					"type": "string",
 					"enum": [
 						"Error",
@@ -36,7 +36,7 @@
 					"default": "Warning",
 					"description": "The 'uppercaseNamesIsForbidden' rule severity."
 				},
-				"example.severity.stub.blockNameIsRequired": {
+				"example.severity.blockNameIsRequired": {
 					"type": "string",
 					"enum": [
 						"Error",

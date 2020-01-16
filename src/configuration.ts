@@ -1,3 +1,5 @@
+// Расширяем конфиг для правил подключаемого линтера + добавляем в package.json правила
+
 export enum RuleKeys {
     UppercaseNamesIsForbidden = 'uppercaseNamesIsForbidden',
     BlockNameIsRequired = 'blockNameIsRequired',
@@ -12,22 +14,17 @@ export enum RuleKeys {
 }
 
 export enum RuleTypes {
-    Stub = 'stub',
     Warning = 'warning',
     Text = 'text',
     Grid = 'grid',
 }
 
 export interface SeverityConfiguration {
-    [RuleTypes.Stub]: Stub;
+    [RuleKeys.BlockNameIsRequired]: Severity;
+    [RuleKeys.UppercaseNamesIsForbidden]: Severity;
     [RuleTypes.Warning]: Warning;
     [RuleTypes.Text]: Text;
     [RuleTypes.Grid]: Grid;
-}
-
-interface Stub {
-    [RuleKeys.BlockNameIsRequired]: Severity;
-    [RuleKeys.UppercaseNamesIsForbidden]: Severity;
 }
 
 export interface Warning {

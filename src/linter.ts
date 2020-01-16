@@ -1,17 +1,13 @@
 import * as jsonToAst from "json-to-ast";
 import "./js/linter";
+import { RuleKeys } from "./configuration";
 
 export type JsonAST = jsonToAst.AstJsonEntity | undefined;
 
-export interface LinterStub<TType, TKey> {
-    key: TKey;
-    type: TType;
-    loc: jsonToAst.AstLocation;
-}
-
-export interface LinterByBlock {
-    code: string;
-    error: string;
+export interface LinterProblem {
+    key: RuleKeys;
+    error?: string;
+    code?: string;
     location: {
         start: {
             column: number;
@@ -21,14 +17,17 @@ export interface LinterByBlock {
             column: number;
             line: number;
         }
-    }
+    };
 }
 
-export function makeLint<TProblemType, TProblemKey>(
+// Объявляем глобально функцию линтера
+declare function lint(json: string): LinterProblem[];
+
+export function makeLint(
     json: string, 
-    validateProperty: (property: jsonToAst.AstProperty) => LinterStub<TProblemType, TProblemKey>[],
-    validateObject: (obj: jsonToAst.AstObject) => LinterStub<TProblemType, TProblemKey>[]
-): LinterStub<TProblemType, TProblemKey>[] {
+    validateProperty: (property: jsonToAst.AstProperty) => LinterProblem[],
+    validateObject: (obj: jsonToAst.AstObject) => LinterProblem[]
+): LinterProblem[] {
 
     function walk(
         node: jsonToAst.AstJsonEntity, 
@@ -54,14 +53,19 @@ export function makeLint<TProblemType, TProblemKey>(
 
     function parseJson(json: string):JsonAST  {return jsonToAst(json); }
 
-    const errors: LinterStub<TProblemType, TProblemKey>[] = [];
+    const errors: LinterProblem[] = [];
     const ast: JsonAST = parseJson(json);
 
     if (ast) {
         walk(ast,
+            // .concat не изменяет массив, а возвращает новый массив, состоящий из массива, на котором он был вызван
+            // правильно здесь использовать push с деструктуризацей массива
             (property: jsonToAst.AstProperty) => errors.push(...validateProperty(property)), 
             (obj: jsonToAst.AstObject) => errors.push(...validateObject(obj)));
     }
+    
+    errors.push(...lint(json));
 
     return errors;
 }
+

@@ -14,9 +14,7 @@ import { basename, extname } from 'path';
 import * as jsonToAst from "json-to-ast";
 
 import { ExampleConfiguration, Severity, RuleKeys, RuleTypes } from './configuration';
-import { makeLint, LinterStub, LinterByBlock } from './linter';
-
-declare function lint(json: string): LinterByBlock[];
+import { makeLint, LinterProblem } from './linter';
 
 let conn = createConnection(ProposedFeatures.all);
 let docs: TextDocuments = new TextDocuments();
@@ -25,20 +23,27 @@ let conf: ExampleConfiguration | undefined | any = undefined;
 conn.onInitialize((params: InitializeParams) => {
     return {
         capabilities: {
-            textDocumentSync: 1
+            textDocumentSync: 1 // нет такого параметра 'always'
         }
     };
 });
 
-function GetSeverity(type: RuleTypes, key: RuleKeys): DiagnosticSeverity | undefined {
+// Добавлен параметр типа ошибки (Warning, Text, Grid)
+function GetSeverity(code: string | RuleKeys): DiagnosticSeverity | undefined {
     if (!conf || !conf.severity) {
         return undefined;
     }
-
-    const severity: Severity = conf.severity[type][key];
+    let severity: Severity | undefined;
+    if (typeof code === 'string') {
+        const {type, key} = getKey(code);
+        severity = conf.severity[type][key];
+    } else {
+        severity = conf.severity[code];
+    }
 
     switch (severity) {
         case Severity.Error:
+            // опечатка Information -> Error
             return DiagnosticSeverity.Error;
         case Severity.Warning:
             return DiagnosticSeverity.Warning;
@@ -51,23 +56,21 @@ function GetSeverity(type: RuleTypes, key: RuleKeys): DiagnosticSeverity | undef
     }
 }
 
-function getType(code: string): RuleTypes | undefined {
-    const ruleType = code.split('.')[0].toLowerCase();
+// Функция хелпер для парсинга кода ошибки и сравнение с настройкой в плагине
 
-    return ruleType as RuleTypes
+function getKey(code: string): { type: RuleTypes, key: RuleKeys} {
+    const [type, key] = code.split('.');
+    return {
+        type: type.toLowerCase() as RuleTypes,
+        key: key.toLowerCase()
+            .replace(/([_][a-z])/ig, (key) => {
+            return key.toUpperCase()
+                .replace('_', '');
+        }) as RuleKeys
+    };
 }
 
-function getKey(code: string): RuleKeys | undefined {
-    const ruleKey = code.split('.')[1]
-        .toLowerCase()
-        .replace(/([_][a-z])/ig, (key) => {
-          return key.toUpperCase()
-            .replace('_', '');
-        });
-
-    return ruleKey as RuleKeys
-}
-
+// Лишняя логика, кажется, сообщения можно привязывать сразу к ошибке
 function GetMessage(key: RuleKeys): string {
     if (key === RuleKeys.BlockNameIsRequired) {
         return 'Field named \'block\' is required!';
@@ -82,31 +85,30 @@ function GetMessage(key: RuleKeys): string {
 
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     const source = basename(textDocument.uri);
-    if (extname(source) !== '.json') return;
+    if (extname(source) !== '.json') { return; }
+    // textDocument.uri просто возвращает ссылку на документ, а необходим контент документа
     const json = textDocument.getText();
 
     const validateObject = (
         obj: jsonToAst.AstObject
-    ): LinterStub<RuleTypes, RuleKeys>[] =>
+    ): LinterProblem[] =>
         obj.children.some(p => p.key.value === 'block')
             ? []
             : [
                 { 
                     key: RuleKeys.BlockNameIsRequired,
-                    type: RuleTypes.Stub,
-                    loc: obj.loc 
+                    location: obj.loc 
                 }
             ];
 
     const validateProperty = (
         property: jsonToAst.AstProperty
-    ): LinterStub<RuleTypes, RuleKeys>[] =>
+    ): LinterProblem[] =>
         /^[A-Z]+$/.test(property.key.value)
             ? [
                   {
                       key: RuleKeys.UppercaseNamesIsForbidden,
-                      type: RuleTypes.Stub,
-                      loc: property.key.loc
+                      location: property.key.loc
                   }
               ]
             : [];
@@ -118,24 +120,24 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     ).reduce(
         (
             list: Diagnostic[],
-            problem: LinterStub<RuleTypes, RuleKeys>
+            problem: LinterProblem
         ): Diagnostic[] => {
-            const severity = GetSeverity(problem.type, problem.key);
+            const severity = GetSeverity(problem.code || problem.key);
 
             if (severity) {
-                const message = GetMessage(problem.key);
+                const message = problem.error || GetMessage(problem.key);
 
                 let diagnostic: Diagnostic = {
                     range: {
-                            start: {
-                                line: problem.loc.start.line - 1,
-                                character: problem.loc.start.column - 1,
-                            },
-                            end: {
-                                line: problem.loc.end.line - 1,
-                                character: problem.loc.end.column - 1,
-                            }
+                        start: {
+                            line: problem.location.start.line - 1,
+                            character: problem.location.start.column - 1,
                         },
+                        end: {
+                            line: problem.location.end.line - 1,
+                            character: problem.location.end.column - 1,
+                        }
+                    },
                     severity,
                     message,
                     source
@@ -149,42 +151,8 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
         []
     );
 
-    diagnostics.push(
-        ...lint(json).reduce(
-            (
-                list: Diagnostic[],
-                problem: LinterByBlock
-            ): Diagnostic[] => {
-                const type = getType(problem.code);
-                const key = getKey(problem.code);
-                if (type && key) {
-                    const severity = GetSeverity(type, key);
-
-                    const diagnostic: Diagnostic = {
-                        range: {
-                            start: {
-                                line: problem.location.start.line - 1,
-                                character: problem.location.start.column - 1,
-                            },
-                            end: {
-                                line: problem.location.end.line - 1,
-                                character: problem.location.end.column - 1,
-                            }
-                        },
-                        severity,
-                        message: problem.error,
-                        source
-                    };
-
-                    list.push(diagnostic);
-                }
-
-                return list;
-            },
-            []
-        )
-    );
-
+    // Убираем if, т. к. если нет ошибок, то обновления не будет, а ошибки,
+    // которых по факту нет - в документе останутся подсвеченными, даже после исправления
     conn.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
 
