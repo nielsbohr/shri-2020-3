@@ -1,12 +1,11 @@
 import * as jsonToAst from "json-to-ast";
 import "./js/linter";
-import { RuleKeys } from "./configuration";
 
 export type JsonAST = jsonToAst.AstJsonEntity | undefined;
 
-// Изменяем интерфейс ошибки. Подробнее в README.
-export interface LinterProblem {
-    key?: RuleKeys;
+// Расширил интерфейс ошибки, под два типа линтера
+export interface LinterProblem<TKey> {
+    key?: TKey;
     error?: string;
     code?: string;
     location?: {
@@ -21,15 +20,14 @@ export interface LinterProblem {
     };
     loc?: jsonToAst.AstLocation;
 }
-
 // Объявляем глобально функцию линтера
-declare function lint(json: string): LinterProblem[];
+declare function lint<T>(json: string): LinterProblem<T>[];
 
-export function makeLint(
+export function makeLint<TProblemKey>(
     json: string, 
-    validateProperty: (property: jsonToAst.AstProperty) => LinterProblem[],
-    validateObject: (obj: jsonToAst.AstObject) => LinterProblem[]
-): LinterProblem[] {
+    validateProperty: (property: jsonToAst.AstProperty) => LinterProblem<TProblemKey>[],
+    validateObject: (obj: jsonToAst.AstObject) => LinterProblem<TProblemKey>[]
+): LinterProblem<TProblemKey>[] {
 
     function walk(
         node: jsonToAst.AstJsonEntity, 
@@ -55,7 +53,7 @@ export function makeLint(
 
     function parseJson(json: string):JsonAST  {return jsonToAst(json); }
 
-    const errors: LinterProblem[] = [];
+    const errors: LinterProblem<TProblemKey>[] = [];
     const ast: JsonAST = parseJson(json);
 
     if (ast) {
@@ -67,7 +65,7 @@ export function makeLint(
             (obj: jsonToAst.AstObject) => errors.push(...validateObject(obj)));
     }
     
-    errors.push(...lint(json));
+    errors.push(...lint<TProblemKey>(json));
 
     return errors;
 }

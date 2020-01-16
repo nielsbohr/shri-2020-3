@@ -93,7 +93,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 
     const validateObject = (
         obj: jsonToAst.AstObject
-    ): LinterProblem[] =>
+    ): LinterProblem<RuleKeys>[] =>
         obj.children.some(p => p.key.value === 'block')
             ? []
             : [
@@ -105,7 +105,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 
     const validateProperty = (
         property: jsonToAst.AstProperty
-    ): LinterProblem[] =>
+    ): LinterProblem<RuleKeys>[] =>
         /^[A-Z]+$/.test(property.key.value)
             ? [
                   {
@@ -122,7 +122,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     ).reduce(
         (
             list: Diagnostic[],
-            problem: LinterProblem
+            problem: LinterProblem<RuleKeys>
         ): Diagnostic[] => {
             // Изменил мэппинг ошибок под два разных типа
             const code = problem.key || getKey(problem.code);
@@ -133,7 +133,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
                 if (severity && message && location) {
                     let diagnostic: Diagnostic = {
                         
-                        // Изменил на вариант, который подходит под оба линтера
+                        // Изменил на вариант, который подходит под оба типа ошибки
                         range: {
                             start: {
                                 line: location.start.line - 1,
