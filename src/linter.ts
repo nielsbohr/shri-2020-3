@@ -54,18 +54,24 @@ export function makeLint<TProblemKey>(
     function parseJson(json: string):JsonAST  {return jsonToAst(json); }
 
     const errors: LinterProblem<TProblemKey>[] = [];
-    const ast: JsonAST = parseJson(json);
-
-    if (ast) {
-        walk(ast,
-            
-            // .concat не изменяет массив, а возвращает новый массив, состоящий из массива, на котором он был вызван
-            // правильно здесь использовать push с деструктуризацей массива
-            (property: jsonToAst.AstProperty) => errors.push(...validateProperty(property)), 
-            (obj: jsonToAst.AstObject) => errors.push(...validateObject(obj)));
-    }
     
-    errors.push(...lint<TProblemKey>(json));
+    // Если json невалиден, оставляем пустой массив
+    try {
+        const ast: JsonAST = parseJson(json);
+
+        if (ast) {
+            walk(ast,
+                
+                // .concat не изменяет массив, а возвращает новый массив, состоящий из массива, на котором он был вызван
+                // правильно здесь использовать push с деструктуризацей массива
+                (property: jsonToAst.AstProperty) => errors.push(...validateProperty(property)), 
+                (obj: jsonToAst.AstObject) => errors.push(...validateObject(obj)));
+        }
+    
+        errors.push(...lint<TProblemKey>(json));
+    } catch(e) {
+        //
+    }
 
     return errors;
 }
