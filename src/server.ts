@@ -29,7 +29,7 @@ conn.onInitialize((params: InitializeParams) => {
 });
 
 // Добавлен параметр типа ошибки (Warning, Text, Grid)
-function GetSeverity(code: string | { type: RuleTypes, key: RuleKeys} | undefined): DiagnosticSeverity | undefined {
+function GetSeverity(code: RuleKeys | { type: RuleTypes, key: RuleKeys} | undefined): DiagnosticSeverity | undefined {
     if (!conf || !conf.severity || !code) {
         return undefined;
     }
