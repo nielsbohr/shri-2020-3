@@ -29,8 +29,8 @@ conn.onInitialize((params: InitializeParams) => {
 });
 
 // Добавлен параметр типа ошибки (Warning, Text, Grid)
-function GetSeverity(code: string | { type: RuleTypes, key: RuleKeys}): DiagnosticSeverity | undefined {
-    if (!conf || !conf.severity) {
+function GetSeverity(code: string | { type: RuleTypes, key: RuleKeys} | undefined): DiagnosticSeverity | undefined {
+    if (!conf || !conf.severity || !code) {
         return undefined;
     }
     let severity: Severity | undefined;
@@ -71,7 +71,6 @@ function getKey(code: string | undefined): { type: RuleTypes, key: RuleKeys} | u
     }
 }
 
-// Лишняя логика, кажется, сообщения можно привязывать сразу к ошибке
 function GetMessage(key: RuleKeys | undefined): string {
     if (key === RuleKeys.BlockNameIsRequired) {
         return 'Field named \'block\' is required!';
@@ -126,31 +125,29 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
         ): Diagnostic[] => {
             // Изменил мэппинг ошибок под два разных типа
             const code = problem.key || getKey(problem.code);
-            if (code) {
-                const severity = GetSeverity(code);
-                const message = problem.error || GetMessage(problem.key);
-                const location = problem.loc ? problem.loc : problem.location;
-                if (severity && message && location) {
-                    let diagnostic: Diagnostic = {
-                        
-                        // Изменил на вариант, который подходит под оба типа ошибки
-                        range: {
-                            start: {
-                                line: location.start.line - 1,
-                                character: location.start.column - 1,
-                            },
-                            end: {
-                                line: location.end.line - 1,
-                                character: location.end.column - 1,
-                            }
+            const severity = GetSeverity(code);
+            const message = problem.error || GetMessage(problem.key);
+            const location = problem.loc ? problem.loc : problem.location;
+            if (severity && location) {
+                let diagnostic: Diagnostic = {
+                    
+                    // Изменил на вариант, который подходит под оба типа ошибки
+                    range: {
+                        start: {
+                            line: location.start.line - 1,
+                            character: location.start.column - 1,
                         },
-                        severity,
-                        message,
-                        source
-                    };
+                        end: {
+                            line: location.end.line - 1,
+                            character: location.end.column - 1,
+                        }
+                    },
+                    severity,
+                    message,
+                    source
+                };
 
-                    list.push(diagnostic);
-                }
+                list.push(diagnostic);
             }
 
             return list;
